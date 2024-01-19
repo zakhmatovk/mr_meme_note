@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+import datetime
 from typing import Literal, TypedDict
 from pydantic import BaseModel
 
@@ -35,10 +36,10 @@ class RequestGTP(TypedDict):
     completionOptions: CompletionOptions
     messages: list[MessageGPT]
 
-SYSTEM_PROMT = '''
-Сегодня 18 января.
+SYSTEM_PROMT = f'''
+Сегодня {datetime.date.today()}.
 Таймзона МСК.
-Выходной формат для даты ISO.
+Выходной формат для даты YYYY-MM-DD HH:MM:SS
 Вытащи из сообщения пользователя ключи: "summary", "start", "end" и предоставь ответ в виде json
 '''
 
@@ -80,7 +81,7 @@ async def handler(event: Event, context):
     )
 
     message = f'{response.status_code}\n'
-    message += '```\n' + response.text + '\n```'
+    message += '<code>' + response.text + '</code>'
 
     return {
         'headers': {
