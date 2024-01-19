@@ -80,7 +80,7 @@ async def handler(event: Event, context):
     )
 
     message = f'{response.status_code}\n'
-    message += '```\n' + response.text
+    message += '```\n' + response.text + '\n```'
 
     return {
         'headers': {
