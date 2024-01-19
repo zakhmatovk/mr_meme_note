@@ -13,16 +13,21 @@ jobs:
       - name: Set up Git repository
         uses: actions/checkout@v2
 
-      - name: Archive project
-        run: zip -r project.zip * -x ".git/*"
-
-
-      - name: Upload to S3
-        uses: jakejarvis/s3-sync-action@master
+      - name: Deploy Function
+        id: sls-func
+        uses: yc-actions/yc-sls-function@v2
         with:
-          args: --acl public-read --follow-links --delete  # Настройте параметры загрузки S3
-
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+          bucket: ${{ secrets.BUCKET }}
+          folder-id: 'b1gac1g0nm3qptu01u57'
+          function-name: 'mr-meme-note'
+          runtime: 'python312'
+          memory: '128Mb'
+          entrypoint: 'index.handler'
+          include: |
+            .
+          exclude: |
+            .git*
+          tags: |
+            ${{ GITHUB_SHA::6 }}
+            foo
