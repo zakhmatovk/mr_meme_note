@@ -28,6 +28,3 @@ jobs:
             .
           exclude: |
             .git*
-          tags: |
-            ${{ GITHUB_SHA::6 }}
-            foo
