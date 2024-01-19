@@ -81,7 +81,7 @@ async def handler(event: Event, context):
     )
 
     message = f'{response.status_code}\n'
-    message += '<code>' + response.text + '</code>'
+    message += '```response\n' + response.text + '```'
 
     return {
         'headers': {
@@ -91,6 +91,7 @@ async def handler(event: Event, context):
             'method': 'sendMessage',
             'chat_id': _body.message.chat.id,
             'text':  message,
+            'parse_mode': 'html'
         }),
         'statusCode': 200,
     }
