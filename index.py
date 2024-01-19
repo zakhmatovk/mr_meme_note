@@ -59,7 +59,7 @@ async def handler(event: Event, context):
         }
 
     promt: RequestGTP = {
-        'modelUri': f'gpt://{FOLDER_ID}/yandexgpt-lite',
+        'modelUri': f'gpt://{FOLDER_ID}/yandexgpt/latest',
         'completionOptions': {
             'stream': False,
             'temperature': 0.0,
