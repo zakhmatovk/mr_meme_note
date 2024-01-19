@@ -39,7 +39,7 @@ class RequestGTP(TypedDict):
 SYSTEM_PROMT = f'''
 Сегодня {datetime.date.today()}.
 Таймзона МСК.
-Выходной формат для даты YYYY-MM-DD HH:MM:SS
+Формат даты-времени: YYYY-MM-DD HH:MM:SS
 Вытащи из сообщения пользователя ключи: "summary", "start", "end" и предоставь ответ в виде json
 '''
 
@@ -81,7 +81,7 @@ async def handler(event: Event, context):
     )
 
     message = f'{response.status_code}\n'
-    message += '```response\n' + response.text + '```'
+    message += '<code>' + response.text + '</code>'
 
     return {
         'headers': {
