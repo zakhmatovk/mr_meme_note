@@ -36,7 +36,7 @@ class RequestGTP(TypedDict):
     completionOptions: CompletionOptions
     messages: list[MessageGPT]
 
-SYSTEM_PROMT = f'''
+SYSTEM_PROMT = '''
 Вытащи из сообщения пользователя ключи: "summary", "start", "end" и предоставь ответ в виде json
 Пример:
 {
