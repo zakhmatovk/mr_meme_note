@@ -21,7 +21,7 @@ jobs:
           bucket: ${{ secrets.BUCKET }}
           folder-id: 'b1gac1g0nm3qptu01u57'
           function-name: 'mr-meme-note'
-          service-account: 'github-tractor-robot'
+          service-account: 'aje401ec04296nu8iqod'
           runtime: 'python312'
           memory: '128Mb'
           entrypoint: 'index.handler'
@@ -30,4 +30,5 @@ jobs:
           include: |
             .
           exclude: |
-            ./.git*
+            ./.git
+            ./.github
