@@ -4,6 +4,7 @@ import requests
 import datetime
 from typing import Literal, TypedDict
 from pydantic import BaseModel
+from requests.exceptions import SSLError
 
 YA_GPT_API_TOKEN = os.environ['YA_GPT_API_TOKEN']
 FOLDER_ID = 'b1gac1g0nm3qptu01u57'
@@ -36,6 +37,33 @@ class RequestGTP(TypedDict):
     completionOptions: CompletionOptions
     messages: list[MessageGPT]
 
+
+CATEGORIES = [
+    'Добавить задание в TODO лист',
+    'Добавить событие в календарь',
+    'Записать идею для подарка',
+    'Записать место, куда можно сходить',
+]
+
+CATEGORY_PROMT = '''
+Ты личный ассистент пользователя и тебе нужно категоризировать действие описанное в сообщении пользователя.
+В ответ только напиши категорию действия
+
+Есть следующие категории действий:
+
+1. **Добавить задание в TODO лист**: Если у вас есть задача, которую нужно добавить в список дел, то это действие относится к категории "Добавить задание в TODO лист".
+   Пример: "Купить продукты", "Позвонить клиенту", "Написать отчет".
+
+2. **Добавить событие в календарь**: В сообщении должно содержаться название события, его дата и время.
+   Пример: "В субботу в 12 будет играть Парма с Енисеем", "23 января у Насти день рождения", "Завтра пойдем с Ромой в кино".
+
+3. **Записать идею для подарка**: В эту категорию стоит определить сообщения с идей подарка другому человеку.
+   Примеры: "Подарить Оле пылесос", "Игорь мечтает о книге", "Антон говорил про щепочницу".
+
+4. **Записать место, куда можно сходить**: Если вы задумались о месте, которое можно посетить, то это относится к категории "Записать место, куда можно сходить".
+   Примеры: "В Osoo вкусная лапша", "Ресторан", "Парк".
+'''
+
 SYSTEM_PROMT = f'''
 Ты отвечаешь на сообщения пользователей и добавляешь события в их календари.
 В сообщении пользователя есть описание события, дата и время его начала.
@@ -53,15 +81,7 @@ SYSTEM_PROMT = f'''
 }}
 '''
 
-async def handler(event: Event, context):
-    body: dict = json.loads(event['body'])
-    _body = EventBody(**body)
-
-    if not _body.message:
-        return {
-            'statusCode': 200,
-        }
-
+async def make_request(promt_text: str, message_text: str) -> requests.Response:
     promt: RequestGTP = {
         'modelUri': f'gpt://{FOLDER_ID}/yandexgpt/latest',
         'completionOptions': {
@@ -72,11 +92,11 @@ async def handler(event: Event, context):
         'messages': [
             {
                 'role': 'system',
-                'text': SYSTEM_PROMT
+                'text': promt_text
             },
             {
                 'role': 'user',
-                'text': _body.message.text
+                'text': message_text
             }
         ]
     }
@@ -89,14 +109,42 @@ async def handler(event: Event, context):
             "Authorization": f"Api-Key {YA_GPT_API_TOKEN}"
         }
     )
+    return response
 
-    message = f'{response.status_code}\n'
-    try:
-        response_json = response.json()
-        for it in response_json['result']['alternatives']:
-            message += '<pre language="json">' + it['message']['text'] + '</pre>'
-    except Exception:
-        message += '<pre language="json">' + response.text + '</pre>'
+async def process_message(message_text: str) -> str:
+    response = await make_request(promt_text=CATEGORY_PROMT, message_text=message_text)
+    if response.status_code != 200:
+        return response.text
+
+    if response.text not in CATEGORIES:
+        return f'Подобрал несуществующую категорию действия:\n<pre language="json">{response.text}</pre>'
+
+    if response.text == 'Добавить событие в календарь':
+        response = await make_request(promt_text=SYSTEM_PROMT, message_text=message_text)
+        message = []
+        message.append(response.text)
+        message.append(response.status_code)
+        try:
+            response_json = response.json()
+            for it in response_json['result']['alternatives']:
+                message.append('<pre language="json">')
+                message.append(it['message']['text'])
+                message.append('</pre>')
+        except Exception:
+            message.append('<pre language="json">')
+            message.append(response.text)
+            message.append('</pre>')
+        return '\n'.join(message)
+    return response.text
+
+async def handler(event: Event, context):
+    body: dict = json.loads(event['body'])
+    _body = EventBody(**body)
+
+    if not _body.message:
+        return {
+            'statusCode': 200,
+        }
 
     return {
         'headers': {
@@ -105,7 +153,7 @@ async def handler(event: Event, context):
         'body': json.dumps({
             'method': 'sendMessage',
             'chat_id': _body.message.chat.id,
-            'text':  message,
+            'text':  await process_message(_body.message.text),
             'parse_mode': 'html'
         }),
         'statusCode': 200,
