@@ -135,14 +135,17 @@ async def process_message(message_text: str) -> str:
     if response.status_code != 200:
         return response.text
 
+    message = []
     try:
         category = get_text(response.json())
+        message.append('<pre language="json">')
+        message.append(category)
+        message.append('</pre>')
     except Exception:
-        message = []
         message.append('<pre language="json">')
         message.append(response.text)
         message.append('</pre>')
-        return '\n'.join(message)
+        return '\n'.join(map(str, message))
 
     if category not in CATEGORIES:
         return f'Подобрал несуществующую категорию действия:\n<pre language="json">{response.text}</pre>'
@@ -150,8 +153,6 @@ async def process_message(message_text: str) -> str:
     if category == 'Добавить событие в календарь':
         await asyncio.sleep(0.2)
         response = await make_request(promt_text=SYSTEM_PROMT, message_text=message_text)
-        message = []
-        message.append(category)
         message.append(str(response.status_code))
         try:
             message.append('<pre language="json">')
@@ -161,7 +162,7 @@ async def process_message(message_text: str) -> str:
             message.append('<pre language="json">')
             message.append(response.text)
             message.append('</pre>')
-        return '\n'.join(message)
+        return '\n'.join(map(str, message))
     return response.text
 
 async def handler(event: Event, context):
