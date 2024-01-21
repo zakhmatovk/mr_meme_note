@@ -1,8 +1,8 @@
 import os
 import json
 import requests
+import time
 import datetime
-import asyncio
 from typing import Literal, TypedDict
 from pydantic import BaseModel
 
@@ -95,7 +95,7 @@ SYSTEM_PROMT = f'''
 }}
 '''
 
-async def make_request(promt_text: str, message_text: str) -> requests.Response:
+def make_request(promt_text: str, message_text: str) -> requests.Response:
     promt: RequestGTP = {
         'modelUri': f'gpt://{FOLDER_ID}/yandexgpt/latest',
         'completionOptions': {
@@ -130,8 +130,8 @@ def get_text(r: ResponseGPT) -> str:
         return it['message']['text']
     return ''
 
-async def process_message(message_text: str) -> str:
-    response = await make_request(promt_text=CATEGORY_PROMT, message_text=message_text)
+def process_message(message_text: str) -> str:
+    response = make_request(promt_text=CATEGORY_PROMT, message_text=message_text)
     if response.status_code != 200:
         return response.text
 
@@ -151,8 +151,7 @@ async def process_message(message_text: str) -> str:
         return f'Подобрал несуществующую категорию действия:\n<pre language="json">{response.text}</pre>'
 
     if category == 'Добавить событие в календарь':
-        await asyncio.sleep(0.2)
-        response = await make_request(promt_text=SYSTEM_PROMT, message_text=message_text)
+        response = make_request(promt_text=SYSTEM_PROMT, message_text=message_text)
         message.append(str(response.status_code))
         try:
             message.append('<pre language="json">')
@@ -165,7 +164,7 @@ async def process_message(message_text: str) -> str:
         return '\n'.join(map(str, message))
     return response.text
 
-async def handler(event: Event, context):
+def handler(event: Event, context):
     body: dict = json.loads(event['body'])
     _body = EventBody(**body)
 
@@ -181,7 +180,7 @@ async def handler(event: Event, context):
         'body': json.dumps({
             'method': 'sendMessage',
             'chat_id': _body.message.chat.id,
-            'text':  await process_message(_body.message.text),
+            'text':  process_message(_body.message.text),
             'parse_mode': 'html'
         }),
         'statusCode': 200,
