@@ -152,7 +152,7 @@ async def process_message(message_text: str) -> str:
         response = await make_request(promt_text=SYSTEM_PROMT, message_text=message_text)
         message = []
         message.append(category)
-        message.append(response.status_code)
+        message.append(str(response.status_code))
         try:
             message.append('<pre language="json">')
             message.append(get_text(response.json()))
