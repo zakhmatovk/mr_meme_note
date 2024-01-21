@@ -2,9 +2,9 @@ import os
 import json
 import requests
 import datetime
+import asyncio
 from typing import Literal, TypedDict
 from pydantic import BaseModel
-from requests.exceptions import SSLError
 
 YA_GPT_API_TOKEN = os.environ['YA_GPT_API_TOKEN']
 FOLDER_ID = 'b1gac1g0nm3qptu01u57'
@@ -148,6 +148,7 @@ async def process_message(message_text: str) -> str:
         return f'Подобрал несуществующую категорию действия:\n<pre language="json">{response.text}</pre>'
 
     if category == 'Добавить событие в календарь':
+        await asyncio.sleep(0.2)
         response = await make_request(promt_text=SYSTEM_PROMT, message_text=message_text)
         message = []
         message.append(category)
