@@ -29,13 +29,27 @@ class CompletionOptions(TypedDict):
     maxTokens: int
 
 class MessageGPT(TypedDict):
-    role: Literal['system', 'user']
+    role: Literal['system', 'user', 'assistant']
     text: str
 
 class RequestGTP(TypedDict):
     modelUri: str
     completionOptions: CompletionOptions
     messages: list[MessageGPT]
+
+
+class ResponseAlternativeGPT(TypedDict):
+    message: MessageGPT
+    status: str
+
+class ResponseResultGPT(TypedDict):
+    alternatives: list[ResponseAlternativeGPT]
+
+class ResponseGPT(TypedDict):
+    result: ResponseResultGPT
+
+
+
 
 
 CATEGORIES = [
@@ -111,25 +125,37 @@ async def make_request(promt_text: str, message_text: str) -> requests.Response:
     )
     return response
 
+def get_text(r: ResponseGPT) -> str:
+    for it in r['result']['alternatives']:
+        return it['message']['text']
+    return ''
+
 async def process_message(message_text: str) -> str:
     response = await make_request(promt_text=CATEGORY_PROMT, message_text=message_text)
     if response.status_code != 200:
         return response.text
 
-    if response.text not in CATEGORIES:
+    try:
+        category = get_text(response.json())
+    except Exception:
+        message = []
+        message.append('<pre language="json">')
+        message.append(response.text)
+        message.append('</pre>')
+        return '\n'.join(message)
+
+    if category not in CATEGORIES:
         return f'Подобрал несуществующую категорию действия:\n<pre language="json">{response.text}</pre>'
 
-    if response.text == 'Добавить событие в календарь':
+    if category == 'Добавить событие в календарь':
         response = await make_request(promt_text=SYSTEM_PROMT, message_text=message_text)
         message = []
-        message.append(response.text)
+        message.append(category)
         message.append(response.status_code)
         try:
-            response_json = response.json()
-            for it in response_json['result']['alternatives']:
-                message.append('<pre language="json">')
-                message.append(it['message']['text'])
-                message.append('</pre>')
+            message.append('<pre language="json">')
+            message.append(get_text(response.json()))
+            message.append('</pre>')
         except Exception:
             message.append('<pre language="json">')
             message.append(response.text)
